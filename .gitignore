@@ -1,0 +1,12 @@
+maxbot
+*.exe
+*.test
+*.out
+
+*.crt
+
+.env
+
+.idea/
+.vscode/
+*.swp
