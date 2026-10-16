@@ -1,37 +1,31 @@
-package main
+package bot
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"os"
 
 	maxbot "github.com/max-messenger/max-bot-api-client-go/v2"
 	"github.com/max-messenger/max-bot-api-client-go/v2/model"
 )
 
-func main() {
-	ctx := context.Background()
+type HandlerFunc func(string) string
 
-	token := os.Getenv("BOT_TOKEN")
-	if token == "" {
-		log.Fatal("Переменная окружения BOT_TOKEN не установлена")
+type Bot struct {
+	api     *maxbot.Api
+	handler HandlerFunc
+}
+
+func New(api *maxbot.Api, handler HandlerFunc) *Bot {
+	return &Bot{
+		api:     api,
+		handler: handler,
 	}
+}
 
-	api, err := maxbot.NewApi(token)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	info, err := api.Bots.GetMyInfo(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("Бот запущен %s", info.FirstName)
-
+func (b *Bot) Run(ctx context.Context) error {
 	var marker int64
 	for {
-		updates, newMarker, err := api.Subscriptions.GetUpdates(ctx, marker)
+		updates, newMarker, err := b.api.Subscriptions.GetUpdates(ctx, marker)
 		if err != nil {
 			log.Println("Ошибка получения обновлений", err)
 			continue
@@ -46,9 +40,10 @@ func main() {
 
 				log.Printf("Получено сообщение: %s", messageText)
 
-				response := maxbot.NewMessage().SetChat(chatID).SetText(fmt.Sprint("Ты написал: ", messageText))
+				reply := b.handler(messageText)
+				response := maxbot.NewMessage().SetChat(chatID).SetText(reply)
 
-				_, err := api.Messages.Send(ctx, response)
+				_, err := b.api.Messages.Send(ctx, response)
 				if err != nil {
 					log.Println("Ошибки отправки сообщения", err)
 				}
