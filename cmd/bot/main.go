@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/FodinNn/TourBot/handlers"
+	"github.com/FodinNn/TourBot/internal/bot"
 	maxbot "github.com/max-messenger/max-bot-api-client-go/v2"
 )
 
@@ -25,5 +27,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("Бот запущен %s", info.FirstName)
+
+	b := bot.New(api, handlers.Handle)
+
+	log.Println("Запускаю бота...")
+	if err := b.Run(ctx); err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("Бот запущен: %s", info.FirstName)
 }
