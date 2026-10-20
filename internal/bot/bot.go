@@ -10,10 +10,8 @@ import (
 	"github.com/FodinNn/TourBot/internal/handlers"
 )
 
-// HandlerFunc обрабатывает текстовое сообщение пользователя.
 type HandlerFunc func(string) []handlers.Reply
 
-// LocationFunc обрабатывает геопозицию пользователя (вложение-локация).
 type LocationFunc func(lat, lon float64) []handlers.Reply
 
 type Bot struct {
@@ -62,7 +60,6 @@ func (b *Bot) Run(ctx context.Context) error {
 	}
 }
 
-// extractLocation ищет в вложениях сообщения геопозицию.
 func extractLocation(attachments []model.Attachment) (float64, float64, bool) {
 	for _, a := range attachments {
 		if a.Type == model.AttachLocation {

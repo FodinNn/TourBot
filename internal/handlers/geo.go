@@ -9,10 +9,8 @@ import (
 	"github.com/FodinNn/TourBot/internal/data"
 )
 
-// Радиус Земли в метрах для формулы гаверсинусов.
 const earthRadiusM = 6371000.0
 
-// DistanceMeters возвращает расстояние по прямой между двумя точками в метрах.
 func DistanceMeters(lat1, lon1, lat2, lon2 float64) int {
 	phi1 := lat1 * math.Pi / 180
 	phi2 := lat2 * math.Pi / 180
@@ -26,7 +24,6 @@ func DistanceMeters(lat1, lon1, lat2, lon2 float64) int {
 	return int(earthRadiusM * c)
 }
 
-// FormatDistance форматирует расстояние: до километра — в метрах, дальше — в километрах.
 func FormatDistance(m int) string {
 	if m < 1000 {
 		return strconv.Itoa(m) + " м"
@@ -40,12 +37,10 @@ type nearbyPlace struct {
 	dist  int
 }
 
-// HandleLocation обрабатывает геопозицию пользователя.
 func HandleLocation(lat, lon float64) []Reply {
 	return []Reply{GeoReply(lat, lon)}
 }
 
-// GeoReply собирает ответ с местами, отсортированными по расстоянию до пользователя.
 func GeoReply(lat, lon float64) Reply {
 	nearby := make([]nearbyPlace, 0, len(data.Places))
 	for _, p := range data.Places {

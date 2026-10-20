@@ -8,7 +8,6 @@ import (
 	"github.com/FodinNn/TourBot/internal/data"
 )
 
-// buttonTexts извлекает текст кнопок из клавиатуры ответа.
 func buttonTexts(r Reply) []string {
 	if r.Keyboard == nil {
 		return nil
@@ -88,7 +87,6 @@ func TestFarewellExactMatchOnly(t *testing.T) {
 			t.Fatalf("%q: ожидалось прощание", input)
 		}
 	}
-	// «покажи кремль» содержит «пока», но не должно прощаться: заглушка + раздел.
 	replies := Handle("покажи кремль")
 	if replies[len(replies)-1].Text == data.Farewell {
 		t.Fatalf("«покажи кремль» ошибочно распознано как прощание")
@@ -148,13 +146,11 @@ func TestEmptyInput(t *testing.T) {
 }
 
 func TestDistanceMetersKnownValues(t *testing.T) {
-	// Расстояние по известным точкам: примерно от Баумана до Кремля ~1.3 км.
 	d := DistanceMeters(55.7885, 49.1217, 55.7988, 49.1052)
 	if d < 1100 || d > 1600 {
 		t.Fatalf("расстояние Бауман—Кремль=%d м, ожидалось 1100..1600", d)
 	}
 
-	// Нулевое расстояние.
 	if got := DistanceMeters(55.7, 49.1, 55.7, 49.1); got != 0 {
 		t.Fatalf("нулевое расстояние=%d, ожидалось 0", got)
 	}
@@ -167,7 +163,6 @@ func TestFormatDistance(t *testing.T) {
 	if got := FormatDistance(1300); got != "1,3 км" {
 		t.Fatalf("FormatDistance(1300)=%q, ожидалось %q", got, "1,3 км")
 	}
-	// 1350 м = 1,35 км → округляется до 1,4.
 	if got := FormatDistance(1350); got != "1,4 км" {
 		t.Fatalf("FormatDistance(1350)=%q, ожидалось %q", got, "1,4 км")
 	}
@@ -177,17 +172,14 @@ func TestFormatDistance(t *testing.T) {
 }
 
 func TestGeoReplySortedAndComplete(t *testing.T) {
-	// Точка у входа в Кремль: Кремль и Сююмбике должны быть первыми.
 	reply := GeoReply(55.7988, 49.1052)
 
-	// Проверяем, что все 8 мест присутствуют в списке.
 	for _, p := range data.Places {
 		if !contains(reply.Text, p.Name) {
 			t.Fatalf("в гео-ответе нет %q", p.Name)
 		}
 	}
 
-	// Кремль идёт раньше удалённого Кабана.
 	if idx := indexOf(reply.Text, "Казанский Кремль"); idx >= 0 {
 		idxKaban := indexOf(reply.Text, "Озеро Кабан")
 		if idx > idxKaban {
@@ -214,8 +206,6 @@ func TestHandleLocationReturnsGeoReply(t *testing.T) {
 }
 
 func TestLocationButtonSendsTextThatMatchesSection(t *testing.T) {
-	// Нажатие гео-кнопки отправляет местоположение (вложение-локация), а не текст кнопки,
-	// поэтому клавиатура гео-кнопки должна быть типа request_geo_location, а не message.
 	replies := Handle("меню")
 	texts := buttonTexts(replies[0])
 	if len(texts) == 0 {
