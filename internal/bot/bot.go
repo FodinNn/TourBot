@@ -6,19 +6,27 @@ import (
 
 	maxbot "github.com/max-messenger/max-bot-api-client-go/v2"
 	"github.com/max-messenger/max-bot-api-client-go/v2/model"
+
+	"github.com/FodinNn/TourBot/internal/handlers"
 )
 
-type HandlerFunc func(string) string
+// HandlerFunc обрабатывает текстовое сообщение пользователя.
+type HandlerFunc func(string) []handlers.Reply
+
+// LocationFunc обрабатывает геопозицию пользователя (вложение-локация).
+type LocationFunc func(lat, lon float64) []handlers.Reply
 
 type Bot struct {
-	api     *maxbot.Api
-	handler HandlerFunc
+	api      *maxbot.Api
+	handler  HandlerFunc
+	location LocationFunc
 }
 
-func New(api *maxbot.Api, handler HandlerFunc) *Bot {
+func New(api *maxbot.Api, handler HandlerFunc, location LocationFunc) *Bot {
 	return &Bot{
-		api:     api,
-		handler: handler,
+		api:      api,
+		handler:  handler,
+		location: location,
 	}
 }
 
@@ -32,22 +40,47 @@ func (b *Bot) Run(ctx context.Context) error {
 		}
 		marker = newMarker
 
-		for _, update := range updates {
-			switch update.UpdateType {
+		for _, u := range updates {
+			switch u.UpdateType {
+			case model.UpdateBotStarted:
+				log.Println("Пользователь запустил бота", u.ChatID)
+				b.send(ctx, u.ChatID, b.handler("старт"))
+
 			case model.UpdateMessageCreated:
-				messageText := update.GetMessage().Body.Text
-				chatID := update.ChatID
+				body := u.GetMessage().Body
 
-				log.Printf("Получено сообщение: %s", messageText)
-
-				reply := b.handler(messageText)
-				response := maxbot.NewMessage().SetChat(chatID).SetText(reply)
-
-				_, err := b.api.Messages.Send(ctx, response)
-				if err != nil {
-					log.Println("Ошибки отправки сообщения", err)
+				if lat, lon, ok := extractLocation(body.Attachments); ok {
+					log.Printf("Получена геопозиция: %f, %f", lat, lon)
+					b.send(ctx, u.ChatID, b.location(lat, lon))
+					continue
 				}
+
+				log.Printf("Получено сообщение: %s", body.Text)
+				b.send(ctx, u.ChatID, b.handler(body.Text))
 			}
+		}
+	}
+}
+
+// extractLocation ищет в вложениях сообщения геопозицию.
+func extractLocation(attachments []model.Attachment) (float64, float64, bool) {
+	for _, a := range attachments {
+		if a.Type == model.AttachLocation {
+			return a.Latitude, a.Longitude, true
+		}
+	}
+	return 0, 0, false
+}
+
+func (b *Bot) send(ctx context.Context, chatID int64, replies []handlers.Reply) {
+	for _, r := range replies {
+		msg := maxbot.NewMessage().SetChat(chatID).SetText(r.Text)
+		if r.Keyboard != nil {
+			msg.AddKeyboard(r.Keyboard)
+		}
+
+		if _, err := b.api.Messages.Send(ctx, msg); err != nil {
+			log.Println("Ошибка отправки сообщения", err)
 		}
 	}
 }

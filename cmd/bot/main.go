@@ -35,7 +35,7 @@ func main() {
 	}
 	log.Printf("Бот запущен: %s", info.FirstName)
 
-	b := bot.New(api, handlers.Handle)
+	b := bot.New(api, handlers.Handle, handlers.HandleLocation)
 
 	log.Println("Запускаю цикл получения обновлений")
 	if err := b.Run(ctx); err != nil {
