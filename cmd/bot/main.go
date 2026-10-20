@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 	maxbot "github.com/max-messenger/max-bot-api-client-go/v2"
@@ -24,7 +25,11 @@ func main() {
 		log.Fatal("Переменная окружения BOT_TOKEN не установлена")
 	}
 
-	api, err := maxbot.NewApi(token)
+	api, err := maxbot.NewApi(
+		token,
+		maxbot.WithBaseURL("https://botapi.max.ru"),
+		maxbot.WithPollingTimeout(25*time.Second),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
