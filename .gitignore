@@ -1,4 +1,7 @@
 maxbot
+/tourbot
+/bin/
+bot.lock
 *.exe
 *.test
 *.out

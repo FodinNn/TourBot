@@ -9,7 +9,10 @@ import (
 	"github.com/FodinNn/TourBot/internal/data"
 )
 
-const earthRadiusM = 6371000.0
+const (
+	earthRadiusM = 6371000.0
+	nearbyCount  = 3
+)
 
 func DistanceMeters(lat1, lon1, lat2, lon2 float64) int {
 	phi1 := lat1 * math.Pi / 180
@@ -26,10 +29,14 @@ func DistanceMeters(lat1, lon1, lat2, lon2 float64) int {
 
 func FormatDistance(m int) string {
 	if m < 1000 {
-		return strconv.Itoa(m) + " м"
+		return strconv.Itoa(roundToTens(m)) + " м"
 	}
 	km := float64(m) / 1000
 	return strings.Replace(strconv.FormatFloat(km, 'f', 1, 64), ".", ",", 1) + " км"
+}
+
+func roundToTens(m int) int {
+	return int(math.Round(float64(m)/10)) * 10
 }
 
 type nearbyPlace struct {
@@ -49,26 +56,34 @@ func GeoReply(lat, lon float64) Reply {
 			dist:  DistanceMeters(lat, lon, p.Lat, p.Lon),
 		})
 	}
+
 	sort.Slice(nearby, func(i, j int) bool {
 		return nearby[i].dist < nearby[j].dist
 	})
 
+	if len(nearby) > nearbyCount {
+		nearby = nearby[:nearbyCount]
+	}
+
 	var sb strings.Builder
 	sb.WriteString("📍 Вот что поблизости:\n\n")
 	for i, n := range nearby {
-		sb.WriteString(strconv.Itoa(i + 1))
-		sb.WriteString(". ")
+		if i > 0 {
+			sb.WriteString("\n")
+		}
 		sb.WriteString(n.place.Emoji)
-		sb.WriteString(" ")
+		sb.WriteString(" **")
 		sb.WriteString(n.place.Name)
-		sb.WriteString(" — ")
+		sb.WriteString("** — ")
 		sb.WriteString(FormatDistance(n.dist))
 		sb.WriteString("\n")
+		sb.WriteString(n.place.Description)
+		sb.WriteString("\n")
 	}
-	sb.WriteString("\n💡 Напишите название любого места — расскажу подробнее.")
 
 	return Reply{
-		Text:     sb.String() + "\n\n" + data.GeoNote,
+		Text:     sb.String() + "\n" + data.GeoNote,
 		Keyboard: BackKeyboard(),
+		Markdown: true,
 	}
 }

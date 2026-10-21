@@ -12,16 +12,19 @@ import (
 type Reply struct {
 	Text     string
 	Keyboard *model.Keyboard
+	Markdown bool
 }
 
 var menuCommands = map[string]bool{
 	"/start":       true,
+	"/help":        true,
 	"старт":        true,
 	"меню":         true,
 	"назад":        true,
 	"привет":       true,
 	"здравствуйте": true,
 	"menu":         true,
+	"помощь":       true,
 }
 
 var farewells = map[string]bool{

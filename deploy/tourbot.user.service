@@ -1,0 +1,15 @@
+[Unit]
+Description=TourBot — гид по Казани для MAX
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/fodin/maxbot
+EnvironmentFile=/home/fodin/maxbot/.env
+Environment=BOT_LOCK_FILE=/home/fodin/maxbot/bot.lock
+ExecStart=/home/fodin/maxbot/bin/tourbot
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

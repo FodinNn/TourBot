@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -13,8 +15,11 @@ import (
 	"github.com/FodinNn/TourBot/internal/handlers"
 )
 
+const defaultLockFile = "bot.lock"
+
 func main() {
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
 	if err := godotenv.Load(); err != nil {
 		log.Println("Файл .env не найден, использую переменные окружения")
@@ -24,6 +29,19 @@ func main() {
 	if token == "" {
 		log.Fatal("Переменная окружения BOT_TOKEN не установлена")
 	}
+
+	lockFile := os.Getenv("BOT_LOCK_FILE")
+	if lockFile == "" {
+		lockFile = defaultLockFile
+	}
+
+	lock, err := bot.AcquireLock(lockFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		_ = lock.Close()
+	}()
 
 	api, err := maxbot.NewApi(
 		token,
@@ -38,7 +56,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("Бот запущен: %s", info.FirstName)
+	log.Printf("Бот запущен: %s (@%s)", info.FirstName, info.Username)
+
+	if err := bot.DropWebhooks(ctx, api); err != nil {
+		log.Fatal(err)
+	}
 
 	b := bot.New(api, handlers.Handle, handlers.HandleLocation)
 

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/max-messenger/max-bot-api-client-go/v2/model"
@@ -31,7 +32,7 @@ func hasButton(r Reply, text string) bool {
 }
 
 func TestMenuCommandVariants(t *testing.T) {
-	for _, input := range []string{"/start", "старт", "меню", "назад", "привет", "МЕНЮ!", "ПРИВЕТ !", "назад.", " menu "} {
+	for _, input := range []string{"/start", "/help", "старт", "меню", "назад", "привет", "МЕНЮ!", "ПРИВЕТ !", "назад.", " menu "} {
 		replies := Handle(input)
 		if len(replies) != 1 {
 			t.Fatalf("%q: ожидался 1 ответ, получено %d", input, len(replies))
@@ -160,6 +161,12 @@ func TestFormatDistance(t *testing.T) {
 	if got := FormatDistance(350); got != "350 м" {
 		t.Fatalf("FormatDistance(350)=%q, ожидалось %q", got, "350 м")
 	}
+	if got := FormatDistance(347); got != "350 м" {
+		t.Fatalf("FormatDistance(347)=%q, ожидалось округление до десятков %q", got, "350 м")
+	}
+	if got := FormatDistance(994); got != "990 м" {
+		t.Fatalf("FormatDistance(994)=%q, ожидалось округление до десятков %q", got, "990 м")
+	}
 	if got := FormatDistance(1300); got != "1,3 км" {
 		t.Fatalf("FormatDistance(1300)=%q, ожидалось %q", got, "1,3 км")
 	}
@@ -171,22 +178,32 @@ func TestFormatDistance(t *testing.T) {
 	}
 }
 
-func TestGeoReplySortedAndComplete(t *testing.T) {
+func TestGeoReplyHasThreeNearestPlaces(t *testing.T) {
 	reply := GeoReply(55.7988, 49.1052)
 
+	all := make([]nearbyPlace, 0, len(data.Places))
 	for _, p := range data.Places {
-		if !contains(reply.Text, p.Name) {
-			t.Fatalf("в гео-ответе нет %q", p.Name)
+		all = append(all, nearbyPlace{place: p, dist: DistanceMeters(55.7988, 49.1052, p.Lat, p.Lon)})
+	}
+	sort.Slice(all, func(i, j int) bool { return all[i].dist < all[j].dist })
+
+	for _, want := range all[:2] {
+		if !contains(reply.Text, "**"+want.place.Name+"**") {
+			t.Fatalf("в гео-ответе нет ближайшего места %q", want.place.Name)
+		}
+		if !contains(reply.Text, want.place.Description) {
+			t.Fatalf("в гео-ответе нет описания %q", want.place.Name)
 		}
 	}
 
-	if idx := indexOf(reply.Text, "Казанский Кремль"); idx >= 0 {
-		idxKaban := indexOf(reply.Text, "Озеро Кабан")
-		if idx > idxKaban {
-			t.Fatalf("Кремль должен идти раньше удалённого Кабана (сортировка по расстоянию)")
-		}
+	fourth := all[3].place.Name
+	if contains(reply.Text, fourth) {
+		t.Fatalf("в гео-ответе лишнее место %q — по ТЗ нужно только три ближайших", fourth)
 	}
 
+	if !reply.Markdown {
+		t.Fatalf("названия выделяются жирным, значит нужен markdown")
+	}
 	if !contains(reply.Text, data.GeoNote) {
 		t.Fatalf("в гео-ответе нет сноски")
 	}
